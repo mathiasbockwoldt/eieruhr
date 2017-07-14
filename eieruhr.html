@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Eieruhr</title>
+<meta name="robots" content="noindex, nofollow">
+<style type="text/css">
+body {
+	background: #ff9999;
+	font-family: sans-serif;
+}
+
+#messageouter {
+	position: absolute;
+	top: 50%;
+	margin-top: -100px; /* half of message height */
+	left: 0;
+	width: 100%;
+}
+
+#messageinner {
+	height: 200px;
+	width: 700px;
+	margin-left: auto;
+	margin-right: auto;
+	/*border: 10px ridge black;
+	background-color: white;*/
+	text-align: center;
+}
+
+#message {
+	font-size: 36pt;
+}
+
+#message2 {
+	font-size: 20pt;
+}
+
+#time {
+	position: absolute;
+	bottom: 10px;
+	right: 10px;
+	font-size: 20pt;
+}
+
+#bus {
+	position: absolute;
+	bottom: 10px;
+	left: 10px;
+	font-size: 20pt;
+}
+
+</style>
+<script type="text/javascript">
+var server = 'index.php?bus=10';
+
+var targets = {
+	'S': 'Sentrum',
+	'G': 'Giæverbukta'
+};
+
+function server_error(status)
+{
+	document.body.style.background = '#ffff99';
+	document.getElementById('message').innerHTML = 'Server error';
+	document.getElementById('message2').innerHTML = 'The server sent a ' + status + ' error.';
+	document.getElementById('bus').innerHTML = 'No bus information';
+}
+
+
+function update_status(status)
+{
+	let ar = status.split(';');
+	var cur_state = ar[0];
+	var time_till_change = parseInt(ar[1]);
+
+	if(time_till_change === -1)
+	{
+		server_error(-1);
+		return
+	}
+
+	var bus = '';
+	if(ar.length > 2)
+	{
+		var delim = '';
+		for(var i = 2; i < ar.length; i++)
+		{
+			let buffer = ar[i].split(':');
+			let target = 'unknown';
+			if(buffer[2] in targets)
+			{
+				target = targets[buffer[2]];
+			}
+			bus += delim + buffer[0] + ': ' + buffer[1] + ' → ' + target;
+			delim = '<br>';
+		}
+	}
+
+	document.getElementById('bus').innerHTML = bus;
+
+	var minute_part = time_till_change + ' minute';
+	if(time_till_change !== 1)
+	{
+		minute_part += 's';
+	}
+
+	if(cur_state === 'w')
+	{
+		document.body.style.background = '#ff9999';
+		document.getElementById('message').innerHTML = 'Busy working!';
+		document.getElementById('message2').innerHTML = 'If you only want to chat, please come back later. The next break will be in ' + time_till_change + ' minutes.';
+	}
+	else if(cur_state === 'p')
+	{
+		document.body.style.background = '#99ff99';
+		document.getElementById('message').innerHTML = 'Taking a break';
+		document.getElementById('message2').innerHTML = 'We have ' + time_till_change + ' minutes to spare.';
+	}
+	else
+	{
+		document.body.style.background = '#ffff99';
+		document.getElementById('message').innerHTML = 'Status unknown';
+		document.getElementById('message2').innerHTML = 'Something went wrong while requesting the status.';
+	}
+}
+
+
+function run_request()
+{
+	var request = new XMLHttpRequest();
+	request.open('GET', server);
+
+	request.addEventListener('load', function(event) {
+		if(request.status >= 200 && request.status < 300)
+		{
+			console.log(request.responseText);
+
+			update_status(request.responseText);
+		}
+		else
+		{
+			console.warn(request.statusText, request.responseText);
+
+			server_error(request.status);
+		}
+	});
+
+	request.send();
+}
+
+
+function time()
+{
+	let now = new Date();
+	let hours = now.getHours();
+	let minutes = now.getMinutes();
+	let seconds = now.getSeconds();
+
+	let day = now.getDate();
+	let month = now.getMonth() + 1;
+	let year = now.getFullYear();
+
+	let thetime = day + '.' + month + '.' + year + ' ';
+	thetime += (hours < 10) ? '0' + hours + ':' : hours + ':';
+	thetime += (minutes < 10) ? '0' + minutes + ':' : minutes + ':';
+	thetime += (seconds < 10) ? '0' + seconds : seconds;
+
+	document.getElementById('time').innerHTML = thetime;
+}
+
+
+window.onload = function() {
+	time();
+	window.setInterval('time()', 1000);
+
+	run_request();
+	window.setInterval('run_request()', 40000);
+};
+</script>
+</head>
+<body>
+<div id="messageouter">
+	<div id="messageinner">
+		<h1 id="message">Status is loading…</h1>
+		<span id="message2">Please wait…</span>
+	</div>
+</div>
+
+<div id="time">0.0.0000 00:00:00</div>
+
+<div id="bus">0.0.0000 00:00:00</div>
+</body>
+</html>
