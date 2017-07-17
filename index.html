@@ -13,7 +13,7 @@ body {
 #messageouter {
 	position: absolute;
 	top: 50%;
-	margin-top: -100px; /* half of message height */
+	margin-top: -100px; /* half of messageinner height */
 	left: 0;
 	width: 100%;
 }
@@ -59,6 +59,8 @@ var targets = {
 	'G': 'Giæverbukta'
 };
 
+var time_till_change = 10000000000;
+
 function server_error(status)
 {
 	document.body.style.background = '#ffff99';
@@ -72,7 +74,7 @@ function update_status(status)
 {
 	let ar = status.split(';');
 	var cur_state = ar[0];
-	var time_till_change = parseInt(ar[1]);
+	time_till_change = parseInt(ar[1]);
 
 	if(time_till_change === -1)
 	{
@@ -109,13 +111,13 @@ function update_status(status)
 	{
 		document.body.style.background = '#ff9999';
 		document.getElementById('message').innerHTML = 'Busy working!';
-		document.getElementById('message2').innerHTML = 'If you only want to chat, please come back later. The next break will be in ' + time_till_change + ' minutes.';
+		document.getElementById('message2').innerHTML = 'If you only want to chat, please come back later. The next break will be in ' + Math.ceil(time_till_change/60) + ' minutes.';
 	}
 	else if(cur_state === 'p')
 	{
 		document.body.style.background = '#99ff99';
 		document.getElementById('message').innerHTML = 'Taking a break';
-		document.getElementById('message2').innerHTML = 'We have ' + time_till_change + ' minutes to spare.';
+		document.getElementById('message2').innerHTML = 'We have ' + Math.ceil(time_till_change/60) + ' minutes to spare.';
 	}
 	else
 	{
@@ -152,6 +154,12 @@ function run_request()
 
 function time()
 {
+	time_till_change--;
+	if(time_till_change <= 0)
+	{
+		update_status();
+	}
+
 	let now = new Date();
 	let hours = now.getHours();
 	let minutes = now.getMinutes();

@@ -5,7 +5,8 @@ $busses = array([355, 33, 'S'], [375, 33, 'S'], [386, 20, 'S'], [395, 33, 'S'], 
 
 $hour = (int) date('G');
 $minute = (int) date('i');
-$current = $hour * 60 + $minute;
+$second = (int) date('s');
+$current = $hour * 3600 + $minute * 60 + $second;
 
 $status = 'u';
 $time_till_change = -1;
@@ -14,10 +15,10 @@ $last = 'u';
 
 foreach($stati as $time => $status)
 {
-	if($time > $current)
+	if($time*60 > $current)
 	{
 		$status = $last;
-		$time_till_change = $time - $current;
+		$time_till_change = $time*60 - $current;
 		break;
 	}
 
@@ -44,9 +45,9 @@ if(array_key_exists('bus', $_GET))
 		$i = 0;
 		foreach($busses as $bus)
 		{
-			if($bus[0] > $current)
+			if($bus[0] > $current/60)
 			{
-				$bus[0] -= $current;
+				$bus[0] -= floor($current/60);
 				array_push($next_busses, implode(':', $bus));
 				if($i++ >= $num_bus)
 				{
@@ -57,7 +58,7 @@ if(array_key_exists('bus', $_GET))
 
 		if($i < $num_bus)
 		{
-			$until_day_end = 1440 - $current;
+			$until_day_end = floor(1440 - $current/60);
 			for($j = 0; $j < $num_bus - $i; $j++)
 			{
 				$buf = $busses[$j][0] + $until_day_end;
