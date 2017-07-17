@@ -1,7 +1,5 @@
 <?php
-$stati = array(0 => 'p', 480 => 'w', 505 => 'p', 510 => 'w', 535 => 'p', 540 => 'w', 565 => 'p', 570 => 'w', 595 => 'p', 600 => 'w', 625 => 'p', 630 => 'w', 655 => 'p', 660 => 'w', 685 => 'p', 690 => 'w', 715 => 'p', 720 => 'w', 745 => 'p', 750 => 'w', 775 => 'p', 780 => 'w', 805 => 'p', 810 => 'w', 835 => 'p', 840 => 'w', 865 => 'p', 870 => 'w', 895 => 'p', 900 => 'w', 925 => 'p', 930 => 'w', 955 => 'p', 960 => 'w', 985 => 'p', 990 => 'w', 1015 => 'p', 1020 => 'w', 1045 => 'p', 1050 => 'w', 1075 => 'p', 1080 => 'w', 1105 => 'p', 1110 => 'w', 1135 => 'p', 1140 => 'w', 1165 => 'p', 1920 => 'w');
-
-$busses = array([355, 33, 'S'], [375, 33, 'S'], [386, 20, 'S'], [395, 33, 'S'], [412, 20, 'S'], [415, 33, 'S'], [432, 20, 'S'], [435, 33, 'S'], [452, 20, 'S'], [455, 33, 'S'], [472, 20, 'S'], [475, 33, 'S'], [492, 20, 'S'], [505, 33, 'S'], [512, 20, 'S'], [532, 20, 'S'], [535, 33, 'S'], [552, 20, 'S'], [565, 33, 'S'], [582, 20, 'S'], [595, 33, 'S'], [612, 20, 'S'], [625, 33, 'S'], [642, 20, 'S'], [655, 33, 'S'], [672, 20, 'S'], [685, 33, 'S'], [702, 20, 'S'], [715, 33, 'S'], [732, 20, 'S'], [745, 33, 'S'], [762, 20, 'S'], [775, 33, 'S'], [792, 20, 'S'], [805, 33, 'S'], [822, 20, 'S'], [835, 33, 'S'], [852, 20, 'S'], [855, 33, 'S'], [872, 20, 'S'], [875, 33, 'S'], [892, 20, 'S'], [895, 33, 'S'], [912, 20, 'S'], [915, 33, 'S'], [932, 20, 'S'], [935, 33, 'S'], [952, 20, 'S'], [955, 33, 'S'], [972, 20, 'S'], [975, 33, 'S'], [992, 20, 'S'], [995, 33, 'S'], [1011, 20, 'S'], [1015, 33, 'S'], [1031, 20, 'S'], [1045, 33, 'S'], [1061, 20, 'S'], [1091, 20, 'S'], [1121, 20, 'S'], [1151, 20, 'S'], [1181, 20, 'S'], [1211, 20, 'S'], [1241, 20, 'S'], [1271, 20, 'S'], [1301, 20, 'S'], [1331, 20, 'S'], [1361, 20, 'S'], [1391, 20, 'S'], [1421, 20, 'S']);
+$stati = array(0 => 'p', 28800 => 'w', 30300 => 'p', 30600 => 'w', 32100 => 'p', 32400 => 'w', 33900 => 'p', 34200 => 'w', 35700 => 'p', 36000 => 'w', 37500 => 'p', 37800 => 'w', 39300 => 'p', 39600 => 'w', 41100 => 'p', 41400 => 'w', 42900 => 'p', 43200 => 'w', 44700 => 'p', 45000 => 'w', 46500 => 'p', 46800 => 'w', 48300 => 'p', 48600 => 'w', 50100 => 'p', 50400 => 'w', 51900 => 'p', 52200 => 'w', 53700 => 'p', 54000 => 'w', 55500 => 'p', 55800 => 'w', 57300 => 'p', 57600 => 'w', 59100 => 'p', 59400 => 'w', 60900 => 'p', 61200 => 'w', 62700 => 'p', 63000 => 'w', 64500 => 'p', 64800 => 'w', 66300 => 'p', 66600 => 'w', 68100 => 'p', 68400 => 'w', 69900 => 'p', 115200 => 'w');
 
 $hour = (int) date('G');
 $minute = (int) date('i');
@@ -10,80 +8,91 @@ $current = $hour * 3600 + $minute * 60 + $second;
 
 $status = 'u';
 $time_till_change = -1;
+$next_status = 'u';
+$next_time_till_change = -1;
 
 $last = 'u';
+$buffer_time = -1;
 
-foreach($stati as $time => $status)
+foreach($stati as $time => $stat)
 {
-	if($time*60 > $current)
+	if($buffer_time !== -1)
 	{
-		$status = $last;
-		$time_till_change = $time*60 - $current;
+		$next_time_till_change = $time - $buffer_time;
 		break;
 	}
+	if($time > $current)
+	{
+		$status = $last;
+		$time_till_change = $time - $current;
+		$next_status = $stat;
+		$buffer_time = $time;
+	}
 
-	$last = $status;
+	$last = $stat;
 }
 
 $next_busses = array();
-$num_bus = 0;
 
 if(array_key_exists('bus', $_GET))
 {
-	$num_bus = (int) $_GET['bus'];
-	if($num_bus < 0)
+	if(file_exists('buscache') and filemtime('buscache') >= time() - 60)
 	{
-		$num_bus = 0;
+		$xml = file_get_contents('buscache');
 	}
-	elseif($num_bus > 20)
+	else
 	{
-		$num_bus = 20;
+		$url = 'https://rp.tromskortet.no/scripts/TravelMagic/TravelMagicWE.dll/v1DepartureSearchXML?from=UiT+%28Troms%C3%B8%29&date=' . date('j.n.Y') . '&time=' . date('G:i') . '&realtime=1';
+
+		$xml = file_get_contents($url);
+
+		$handle = fopen('buscache', 'w');
+		fwrite($handle, $xml);
+		fclose($handle);
 	}
 
-	if($num_bus)
+	$xml_list = explode('>', $xml);
+
+	for($i = 0; $i < count($xml_list); $i++)
 	{
-		$i = 0;
-		foreach($busses as $bus)
+		if(strpos($xml_list[$i], '<i') !== false and strpos($xml_list[$i], 'stopnr="2"') !== false)
 		{
-			if($bus[0] > $current/60)
+			$matches = array();
+
+			preg_match('/ d="([^"]+)" /', $xml_list[$i], $matches);
+			$time = $matches[1];
+			$time = explode(' ', $time)[1];
+
+			preg_match('/ l="([^"]+)" /', $xml_list[$i], $matches);
+			$number = $matches[1];
+
+			preg_match('/ nd="([^"]+)" /', $xml_list[$i], $matches);
+			$direction = $matches[1];
+			if(strpos($direction, 'via') !== false)
 			{
-				$bus[0] -= floor($current/60);
-				array_push($next_busses, implode(':', $bus));
-				if($i++ >= $num_bus)
-				{
-					break;
-				}
+				$direction = explode('via ', $direction)[1];
 			}
+			$direction = ucfirst($direction);
+
+			array_push($next_busses, $time.'|'.$number.'|'.$direction);
+
+			continue;
 		}
 
-		if($i < $num_bus)
+		if(strpos($xml_list[$i], '</departures') !== false)
 		{
-			$until_day_end = floor(1440 - $current/60);
-			for($j = 0; $j < $num_bus - $i; $j++)
-			{
-				$buf = $busses[$j][0] + $until_day_end;
-				if($buf > 60)
-				{
-					$minpart = $buf%60;
-					if($minpart < 10)
-					{
-						$minpart = '0'.strval($minpart);
-					}
-					$busses[$j][0] = strval(floor($buf/60)) . '’' . strval($minpart);
-				}
-				array_push($next_busses, implode(':', $busses[$j]));
-			}
+			break;
 		}
 	}
 }
 
-if($num_bus)
+if(count($next_busses))
 {
 	$res = implode(';', $next_busses);
-	echo "$status;$time_till_change;$res";
+	echo "$status;$time_till_change;$next_status;$next_time_till_change;$res";
 }
 else
 {
-	echo "$status;$time_till_change;";
+	echo "$status;$time_till_change;$next_status;$next_time_till_change";
 }
 ?>

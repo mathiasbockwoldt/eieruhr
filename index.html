@@ -52,14 +52,13 @@ body {
 
 </style>
 <script type="text/javascript">
-var server = 'eieruhr.php?bus=10';
+var server = 'eieruhr.php?bus';
 
-var targets = {
-	'S': 'Sentrum',
-	'G': 'Giæverbukta'
-};
-
+var cur_state = 'u';
 var time_till_change = 10000000000;
+var next_state = 'u';
+var next_time_till_change = 10000000000;
+var busses = [];
 
 function server_error(status)
 {
@@ -70,12 +69,30 @@ function server_error(status)
 }
 
 
-function update_status(status)
+function parse_status(status)
 {
 	let ar = status.split(';');
-	var cur_state = ar[0];
+	cur_state = ar[0];
 	time_till_change = parseInt(ar[1]);
+	next_state = ar[2];
+	next_time_till_change = parseInt(ar[3]);
 
+	busses = [];
+
+	if(ar.length > 4)
+	{
+		for(var i = 4; i < ar.length; i++)
+		{
+			busses.push(ar[i].split('|'));
+		}
+	}
+
+	update_status();
+}
+
+
+function update_status()
+{
 	if(time_till_change === -1)
 	{
 		server_error(-1);
@@ -83,26 +100,24 @@ function update_status(status)
 	}
 
 	var bus = '';
-	if(ar.length > 2)
+	if(busses.length)
 	{
 		var delim = '';
-		for(var i = 2; i < ar.length; i++)
+		for(var i = 0; i < busses.length; i++)
 		{
-			let buffer = ar[i].split(':');
-			let target = 'unknown';
-			if(buffer[2] in targets)
-			{
-				target = targets[buffer[2]];
-			}
-			bus += delim + buffer[0] + ': ' + buffer[1] + ' → ' + target;
+			let buffer = busses[i];
+			buffer[0] = buffer[0].slice(0,-3); // remove seconds
+			bus += delim + buffer[0] + ' - <b>' + buffer[1] + '</b> → ' + buffer[2];
 			delim = '<br>';
 		}
 	}
 
 	document.getElementById('bus').innerHTML = bus;
 
-	var minute_part = time_till_change + ' minute';
-	if(time_till_change !== 1)
+	var time_in_minutes = Math.ceil(time_till_change/60);
+
+	var minute_part = time_in_minutes + ' minute';
+	if(time_in_minutes !== 1)
 	{
 		minute_part += 's';
 	}
@@ -111,13 +126,13 @@ function update_status(status)
 	{
 		document.body.style.background = '#ff9999';
 		document.getElementById('message').innerHTML = 'Busy working!';
-		document.getElementById('message2').innerHTML = 'If you only want to chat, please come back later. The next break will be in ' + Math.ceil(time_till_change/60) + ' minutes.';
+		document.getElementById('message2').innerHTML = 'If you only want to chat, please come back later. The next break will be in ' + minute_part + '.';
 	}
 	else if(cur_state === 'p')
 	{
 		document.body.style.background = '#99ff99';
 		document.getElementById('message').innerHTML = 'Taking a break';
-		document.getElementById('message2').innerHTML = 'We have ' + Math.ceil(time_till_change/60) + ' minutes to spare.';
+		document.getElementById('message2').innerHTML = 'We have ' + minute_part + ' to spare.';
 	}
 	else
 	{
@@ -138,7 +153,7 @@ function run_request()
 		{
 			console.log(request.responseText);
 
-			update_status(request.responseText);
+			parse_status(request.responseText);
 		}
 		else
 		{
@@ -157,22 +172,24 @@ function time()
 	time_till_change--;
 	if(time_till_change <= 0)
 	{
+		time_till_change = next_time_till_change;
+		cur_state = next_state;
 		update_status();
 	}
 
 	let now = new Date();
-	let hours = now.getHours();
-	let minutes = now.getMinutes();
-	let seconds = now.getSeconds();
+	hour = now.getHours();
+	minute = now.getMinutes();
+	second = now.getSeconds();
 
-	let day = now.getDate();
-	let month = now.getMonth() + 1;
-	let year = now.getFullYear();
+	day = now.getDate();
+	month = now.getMonth() + 1;
+	year = now.getFullYear();
 
 	let thetime = day + '.' + month + '.' + year + ' ';
-	thetime += (hours < 10) ? '0' + hours + ':' : hours + ':';
-	thetime += (minutes < 10) ? '0' + minutes + ':' : minutes + ':';
-	thetime += (seconds < 10) ? '0' + seconds : seconds;
+	thetime += (hour < 10) ? '0' + hour + ':' : hour + ':';
+	thetime += (minute < 10) ? '0' + minute + ':' : minute + ':';
+	thetime += (second < 10) ? '0' + second : second;
 
 	document.getElementById('time').innerHTML = thetime;
 }
@@ -197,6 +214,6 @@ window.onload = function() {
 
 <div id="time">0.0.0000 00:00:00</div>
 
-<div id="bus">0.0.0000 00:00:00</div>
+<div id="bus"></div>
 </body>
 </html>
