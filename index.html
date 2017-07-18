@@ -60,6 +60,11 @@ var next_state = 'u';
 var next_time_till_change = 10000000000;
 var busses = [];
 
+var sound_pause = new Audio('pause.wav');
+var sound_work = new Audio('work.wav');
+sound_pause.volume = 1;
+sound_work.volume = 1;
+
 function server_error(status)
 {
 	document.body.style.background = '#ffff99';
@@ -173,6 +178,19 @@ function run_request()
 }
 
 
+function play_sound(what)
+{
+	if(what === 'p')
+	{
+		sound_pause.play();
+	}
+	else
+	{
+		sound_work.play();
+	}
+}
+
+
 function time()
 {
 	time_till_change--;
@@ -181,6 +199,7 @@ function time()
 		time_till_change = next_time_till_change;
 		cur_state = next_state;
 		update_status();
+		play_sound(cur_state);
 	}
 
 	let now = new Date();
