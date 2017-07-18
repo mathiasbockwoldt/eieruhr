@@ -127,18 +127,24 @@ function update_status()
 		document.body.style.background = '#ff9999';
 		document.getElementById('message').innerHTML = 'Busy working!';
 		document.getElementById('message2').innerHTML = 'If you only want to chat, please come back later. The next break will be in ' + minute_part + '.';
+
+		document.title = 'Work ' + minute_part + ' left';
 	}
 	else if(cur_state === 'p')
 	{
 		document.body.style.background = '#99ff99';
 		document.getElementById('message').innerHTML = 'Taking a break';
 		document.getElementById('message2').innerHTML = 'We have ' + minute_part + ' to spare.';
+
+		document.title = 'Pause ' + minute_part + ' left';
 	}
 	else
 	{
 		document.body.style.background = '#ffff99';
 		document.getElementById('message').innerHTML = 'Status unknown';
 		document.getElementById('message2').innerHTML = 'Something went wrong while requesting the status.';
+
+		document.title = 'Unknown ' + minute_part + ' left';
 	}
 }
 
