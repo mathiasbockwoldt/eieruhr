@@ -32,7 +32,8 @@ foreach($stati as $time => $stat)
 	$last = $stat;
 }
 
-$next_busses = array();
+$next_busses_south = array();
+$next_busses_north = array();
 
 if(array_key_exists('bus', $_GET))
 {
@@ -55,7 +56,7 @@ if(array_key_exists('bus', $_GET))
 
 	for($i = 0; $i < count($xml_list); $i++)
 	{
-		if(strpos($xml_list[$i], '<i') !== false and strpos($xml_list[$i], 'stopnr="2"') !== false)
+		if(strpos($xml_list[$i], '<i') !== false)
 		{
 			$matches = array();
 
@@ -68,13 +69,32 @@ if(array_key_exists('bus', $_GET))
 
 			preg_match('/ nd="([^"]+)" /', $xml_list[$i], $matches);
 			$direction = $matches[1];
+			if($direction === 'UiT - UNN')
+			{
+				continue;
+			}
+
 			if(strpos($direction, 'via') !== false)
 			{
-				$direction = explode('via ', $direction)[1];
+				if(strpos($direction, 'via UNN') !== false)
+				{
+					$direction = explode('via ', $direction)[0];
+				}
+				else
+				{
+					$direction = explode('via ', $direction)[1];
+				}
 			}
 			$direction = ucfirst($direction);
 
-			array_push($next_busses, $time.'|'.$number.'|'.$direction);
+			if(strpos($xml_list[$i], 'stopnr="2"') !== false)
+			{
+				array_push($next_busses_south, $time.'|'.$number.'|'.$direction);
+			}
+			else
+			{
+				array_push($next_busses_north, $time.'|'.$number.'|'.$direction);
+			}
 
 			continue;
 		}
@@ -86,13 +106,7 @@ if(array_key_exists('bus', $_GET))
 	}
 }
 
-if(count($next_busses))
-{
-	$res = implode(';', $next_busses);
-	echo "$status;$time_till_change;$next_status;$next_time_till_change;$res";
-}
-else
-{
-	echo "$status;$time_till_change;$next_status;$next_time_till_change";
-}
+$south = implode(';', $next_busses_south);
+$north = implode(';', $next_busses_north);
+echo "$status;$time_till_change;$next_status;$next_time_till_change;$south;NORTH;$north";
 ?>

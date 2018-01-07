@@ -38,15 +38,22 @@ body {
 
 #time {
 	position: absolute;
-	bottom: 10px;
+	top: 10px;
 	right: 10px;
 	font-size: 20pt;
 }
 
-#bus {
+#bus_south {
 	position: absolute;
 	bottom: 10px;
 	left: 10px;
+	font-size: 20pt;
+}
+
+#bus_north {
+	position: absolute;
+	bottom: 10px;
+	right: 10px;
 	font-size: 20pt;
 }
 
@@ -58,7 +65,8 @@ var cur_state = 'u';
 var time_till_change = 10000000000;
 var next_state = 'u';
 var next_time_till_change = 10000000000;
-var busses = [];
+var busses_south = [];
+var busses_north = [];
 
 var sound_pause = new Audio('pause.wav');
 var sound_work = new Audio('work.wav');
@@ -70,7 +78,8 @@ function server_error(status)
 	document.body.style.background = '#ffff99';
 	document.getElementById('message').innerHTML = 'Server error';
 	document.getElementById('message2').innerHTML = 'The server sent a ' + status + ' error.';
-	document.getElementById('bus').innerHTML = 'No bus information';
+	document.getElementById('bus_south').innerHTML = 'No bus information';
+	document.getElementById('bus_north').innerHTML = 'No bus information';
 }
 
 
@@ -82,13 +91,31 @@ function parse_status(status)
 	next_state = ar[2];
 	next_time_till_change = parseInt(ar[3]);
 
-	busses = [];
+	busses_south = [];
+	busses_north = [];
 
-	if(ar.length > 4)
+	current = 'SOUTH';
+
+	for(var i = 4; i < ar.length; i++)
 	{
-		for(var i = 4; i < ar.length; i++)
+		if(ar[i] === '')
 		{
-			busses.push(ar[i].split('|'));
+			continue;
+		}
+
+		if(ar[i] === 'NORTH')
+		{
+			current = 'NORTH';
+			continue;
+		}
+
+		if(current === 'SOUTH')
+		{
+			busses_south.push(ar[i].split('|'));
+		}
+		else
+		{
+			busses_north.push(ar[i].split('|'));
 		}
 	}
 
@@ -104,20 +131,35 @@ function update_status()
 		return
 	}
 
-	var bus = '';
-	if(busses.length)
+	var south = '';
+	if(busses_south.length)
 	{
 		var delim = '';
-		for(var i = 0; i < busses.length; i++)
+		for(var i = 0; i < busses_south.length; i++)
 		{
-			let buffer = busses[i];
+			let buffer = busses_south[i];
 			buffer[0] = buffer[0].slice(0,-3); // remove seconds
-			bus += delim + buffer[0] + ' - <b>' + buffer[1] + '</b> → ' + buffer[2];
+			south += delim + buffer[0] + ' - <b>' + buffer[1] + '</b> → ' + buffer[2];
 			delim = '<br>';
 		}
 	}
 
-	document.getElementById('bus').innerHTML = bus;
+	document.getElementById('bus_south').innerHTML = south;
+
+	var north = '';
+	if(busses_north.length)
+	{
+		var delim = '';
+		for(var i = 0; i < busses_north.length; i++)
+		{
+			let buffer = busses_north[i];
+			buffer[0] = buffer[0].slice(0,-3); // remove seconds
+			north += delim + buffer[0] + ' - <b>' + buffer[1] + '</b> → ' + buffer[2];
+			delim = '<br>';
+		}
+	}
+
+	document.getElementById('bus_north').innerHTML = north;
 
 	var time_in_minutes = Math.ceil(time_till_change/60);
 
@@ -239,6 +281,8 @@ window.onload = function() {
 
 <div id="time">0.0.0000 00:00:00</div>
 
-<div id="bus"></div>
+<div id="bus_south"></div>
+
+<div id="bus_north"></div>
 </body>
 </html>
